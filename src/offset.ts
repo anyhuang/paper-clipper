@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import * as clipperLib from 'js-angusj-clipper';
 import paper from 'paper';
-import simplify from 'simplify-js';
 import paperClipperSimplify, { paperClipperSimplifyTolerance } from './paperClipperSimplify';
 
 // @ts-ignore
@@ -57,17 +56,19 @@ function clipperOffset(clipper: clipperLib.ClipperLibWrapper) {
         };
     const { closed, strokeJoin, strokeCap, miterLimit } = path;
     const pathCopy = path.clone() as paper.Path;
-    pathCopy.flatten(0.1);
+    pathCopy.flatten(1e-2);
 
-    const data = pathCopy.segments.map(({ point }) => ({
+    let data = pathCopy.segments.map(({ point }) => ({
       x: Math.round(point.x * scale),
       y: Math.round(point.y * scale),
     }));
 
-    const offsetPaths = clipper.offsetToPaths({
+    data = clipper.cleanPolygon(data, 1e-2 * scale);
+
+    let offsetPaths = clipper.offsetToPaths({
       delta: offsetOptions.offset * scale,
       miterLimit: miterLimit * scale,
-      arcTolerance: 0.01 * scale,
+      arcTolerance: 1e-2 * scale,
       offsetInputs: [
         {
           // @ts-ignore
@@ -78,6 +79,27 @@ function clipperOffset(clipper: clipperLib.ClipperLibWrapper) {
         },
       ],
     });
+    if (offsetPaths) {
+      offsetPaths = clipper.cleanPolygons(offsetPaths, 1e-2 * scale);
+      // let polyTree = clipper.clipToPolyTree({
+      //   clipType: clipperLib.ClipType.Union,
+      //   reverseSolution: true,
+      //   subjectInputs: offsetPaths.map((path) => ({
+      //     data: path,
+      //     closed: true,
+      //   })),
+      //   subjectFillType: clipperLib.PolyFillType.EvenOdd,
+      // });
+
+      // if (polyTree) {
+      //   polyTree.childs.map((child) => {
+      //     if (!child.isHole) {
+      //       return child;
+      //     }
+      //   });
+      //   offsetPaths = clipper.polyTreeToPaths(polyTree);
+      // }
+    }
 
     if (!offsetPaths) return [];
 
@@ -108,7 +130,8 @@ function clipperOffset(clipper: clipperLib.ClipperLibWrapper) {
 
         return p;
       })
-      .filter((offsetPath) => offsetPath.length);
+      .map(simplifyFn)
+      .filter((offsetPath) => offsetPath.length && offsetPath.length > 3);
   };
 }
 
