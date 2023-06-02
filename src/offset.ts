@@ -62,9 +62,9 @@ function clipperOffset(clipper: clipperLib.ClipperLibWrapper) {
       x: Math.round(point.x * scale),
       y: Math.round(point.y * scale),
     }));
-
-    data = clipper.cleanPolygon(data, 1e-2 * scale);
-
+    if (data.length > 3) {
+      data = clipper.cleanPolygon(data, 1e-2 * scale);
+    }
     let offsetPaths = clipper.offsetToPaths({
       delta: offsetOptions.offset * scale,
       miterLimit: miterLimit * scale,
