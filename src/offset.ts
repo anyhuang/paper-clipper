@@ -131,7 +131,7 @@ function clipperOffset(clipper: clipperLib.ClipperLibWrapper) {
         return p;
       })
       .map(simplifyFn)
-      .filter((offsetPath) => offsetPath.length && offsetPath.length > 3);
+      .filter((offsetPath) => offsetPath.length);
   };
 }
 
